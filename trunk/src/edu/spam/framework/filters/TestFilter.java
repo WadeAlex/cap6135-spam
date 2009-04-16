@@ -2,6 +2,8 @@ package edu.spam.framework.filters;
 
 import javax.mail.internet.MimeMessage;
 
+import edu.spam.framework.Filter;
+
 public class TestFilter implements Filter {
 
 	@Override

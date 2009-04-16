@@ -1,4 +1,4 @@
-package edu.spam.framework.filters;
+package edu.spam.framework;
 
 import javax.mail.internet.MimeMessage;
 

@@ -8,7 +8,6 @@ import java.util.Scanner;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
-import edu.spam.framework.filters.Filter;
 
 public class Runner {
 

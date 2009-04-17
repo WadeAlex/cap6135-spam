@@ -8,7 +8,6 @@ import java.util.Scanner;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
-
 public class Runner {
 
 	/**
@@ -21,10 +20,12 @@ public class Runner {
 	 */
 	public static void main(String[] args) throws FileNotFoundException, MessagingException, ClassNotFoundException, InstantiationException, IllegalAccessException {
 		
+		// Sorry, commented out just so I can get straight to the Bayesian filter.
+		//Class<?>[] filters = getClasses("edu.spam.framework.filters")
 		
-		Class[] filters = getClasses("edu.spam.framework.filters");
-		
-		for (Class c : filters) {
+		 //for (Class<?> c : filters) {
+			Class<?> c = edu.spam.framework.filters.bayesian.BayesianFilter.class;
+			System.out.println(c);
 			Filter filter = (Filter)c.newInstance();
 			
 			Scanner trainInput = new Scanner(new File("trec06p/full/index"));
@@ -33,13 +34,13 @@ public class Runner {
 				String[] parts = line.split(" ");
 				File dataFile = new File("trec06p/full", parts[1]);
 				MimeMessage message = MessageParser.parseMessage(dataFile.getAbsolutePath());
-				filter.train(message);
-				System.out.println(message.getContentType() + " " + message.getSubject());
+				// TODO: the bool passed in should indicate whether the given message is spam or ham.
+				filter.train(message, true);
 			}
 			trainInput.close();
 			
 			// we should download trec07 for the test data  it'll be similar training method.
-		}
+		//}
 	}
 	
 	/**
@@ -49,9 +50,9 @@ public class Runner {
 	* @return Class[] classes inside the root of the given package
 	* @throws ClassNotFoundException if the Package is invalid
 	*/
-	public static Class[] getClasses(String pckgname)
+	public static Class<?>[] getClasses(String pckgname)
 			throws ClassNotFoundException {
-		ArrayList<Class> classes = new ArrayList<Class>();
+		ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
 		// Get a File object for the package
 		File directory = null;
 		try {
@@ -75,7 +76,7 @@ public class Runner {
 			throw new ClassNotFoundException(pckgname
 					+ " does not appear to be a valid package");
 		}
-		Class[] classesA = new Class[classes.size()];
+		Class<?>[] classesA = new Class[classes.size()];
 		classes.toArray(classesA);
 		return classesA;
 	} 

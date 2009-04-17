@@ -7,13 +7,13 @@ import edu.spam.framework.Filter;
 public class TestFilter implements Filter {
 
 	@Override
-	public boolean test(MimeMessage msg) {
+	public float test(MimeMessage msg) {
 		// TODO Auto-generated method stub
-		return false;
+		return 0;
 	}
 
 	@Override
-	public boolean train(MimeMessage msg) {
+	public boolean train(MimeMessage msg, boolean spam) {
 		// TODO Auto-generated method stub
 		return false;
 	}

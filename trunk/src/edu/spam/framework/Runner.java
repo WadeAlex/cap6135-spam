@@ -2,6 +2,7 @@ package edu.spam.framework;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -28,14 +29,47 @@ public class Runner {
 			System.out.println(c);
 			Filter filter = (Filter)c.newInstance();
 			
+			// Train
 			Scanner trainInput = new Scanner(new File("trec06p/full/index"));
+			int messageCount = 0;
+			while (trainInput.hasNextLine() && messageCount < 20000) {
+				++messageCount;
+				String line = trainInput.nextLine();
+				String[] parts = line.split(" ");
+				File dataFile = new File("trec06p/full", parts[1]);
+				MimeMessage message = MessageParser.parseMessage(dataFile.getAbsolutePath());
+				filter.train(message, parts[0].equals("spam"));
+			}
+			
+			// Test
+			// Just to see if this works, we pick up where the trainer cut off due
+			// to heap size limitations.
+			int falsePositives = 0;
+			int rightGuesses = 0;
+			int totalGuesses = 0;
 			while (trainInput.hasNextLine()) {
 				String line = trainInput.nextLine();
 				String[] parts = line.split(" ");
 				File dataFile = new File("trec06p/full", parts[1]);
 				MimeMessage message = MessageParser.parseMessage(dataFile.getAbsolutePath());
-				// TODO: the bool passed in should indicate whether the given message is spam or ham.
-				filter.train(message, true);
+				++totalGuesses;
+				try {
+					float result = filter.test(message);
+					// Right guesses
+					if((parts[0].equals("spam") && result > 0) || 
+						parts[0].equals("ham") && result == 0) {
+						++rightGuesses;
+					}
+					if(parts[0].equals("ham") && result > 0) {
+						++falsePositives;
+					}
+					System.out.println("Message was " + parts[0] + 
+						", filter returned " + result + ". Accuracy: " + 
+						(float)rightGuesses / (float)totalGuesses + 
+						", false positives: " + (float)falsePositives / (float)totalGuesses);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 			trainInput.close();
 			
@@ -80,5 +114,4 @@ public class Runner {
 		classes.toArray(classesA);
 		return classesA;
 	} 
-
 }

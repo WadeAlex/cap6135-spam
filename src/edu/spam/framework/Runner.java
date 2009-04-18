@@ -32,7 +32,7 @@ public class Runner {
 			// Train
 			Scanner trainInput = new Scanner(new File("trec06p/full/index"));
 			int messageCount = 0;
-			while (trainInput.hasNextLine() && messageCount < 20000) {
+			while (trainInput.hasNextLine() && messageCount < 10000) {
 				++messageCount;
 				String line = trainInput.nextLine();
 				String[] parts = line.split(" ");
@@ -47,6 +47,7 @@ public class Runner {
 			int falsePositives = 0;
 			int rightGuesses = 0;
 			int totalGuesses = 0;
+			final float spamThreshold = .8f;
 			while (trainInput.hasNextLine()) {
 				String line = trainInput.nextLine();
 				String[] parts = line.split(" ");
@@ -56,22 +57,27 @@ public class Runner {
 				try {
 					float result = filter.test(message);
 					// Right guesses
-					if((parts[0].equals("spam") && result > 0) || 
-						parts[0].equals("ham") && result == 0) {
+					if((parts[0].equals("spam") && result > spamThreshold) || 
+						(parts[0].equals("ham") && result < spamThreshold)) {
 						++rightGuesses;
-					}
-					if(parts[0].equals("ham") && result > 0) {
+					} else if(parts[0].equals("ham") && result > spamThreshold) {
 						++falsePositives;
 					}
-					System.out.println("Message was " + parts[0] + 
-						", filter returned " + result + ". Accuracy: " + 
-						(float)rightGuesses / (float)totalGuesses + 
-						", false positives: " + (float)falsePositives / (float)totalGuesses);
+					
+					if (totalGuesses % 500 == 0) 
+					{
+						System.out.printf("Input %4s Probability: %4f Accuracy: %4f False Positive %4f%n", 
+								parts[0], result, (float)rightGuesses / (float)totalGuesses, (float)falsePositives / (float)totalGuesses);
+					}
+					
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 			trainInput.close();
+			
+			System.out.printf("Accuracy: %4f False Positive %4f%n", 
+					(float)rightGuesses / (float)totalGuesses, (float)falsePositives / (float)totalGuesses);
 			
 			// we should download trec07 for the test data  it'll be similar training method.
 		//}

@@ -8,7 +8,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
@@ -17,6 +18,11 @@ import edu.spam.framework.Filter;
 
 public class BayesianFilter implements Filter {
 
+	public final int HAM = 0;
+	public final int SPAM = 1;
+
+	Pattern TOKEN_PATTERN = Pattern.compile("\\$?\\d*(?:[.,]\\d+)+|\\w+-\\w+|\\w+");
+	
 	/* (non-Javadoc)
 	 * @see edu.spam.framework.Filter#test(javax.mail.internet.MimeMessage)
 	 */
@@ -25,27 +31,21 @@ public class BayesianFilter implements Filter {
 		// spamProbability is p1 * p2 * ... * p(n - 1) * pn,
 		// inverseSpamProbability is (1-p1) * (1-p2) ... * p(1-n)
 		// see Bayes' theorem for more details.
-		float spamProbability = 1;
-		float inverseSpamProbability = 1;
+		double spamProbability = 1;
+		double inverseSpamProbability = 1;
 		
-		BufferedReader messageReader = 
-			new BufferedReader(new InputStreamReader(msg.getInputStream()));
-		while(messageReader.ready()) {
-			String line = messageReader.readLine();
-			StringTokenizer messageLineTokenizer = new StringTokenizer(line);
-			while(messageLineTokenizer.hasMoreElements()) {
-				String word = (String)messageLineTokenizer.nextElement();
-				float probability = getProbabilityWordIndicatesSpam(word);
-				if(probability != 0 && !Float.isNaN(probability)) {
-					spamProbability *= probability;
-				}
-				if(spamProbability != 1 && !Float.isNaN(probability)) {
-					inverseSpamProbability *= (1 - spamProbability);
-				}
-			}
+		String[] words = getTokens(msg);
+		for (String word : words) {
+			double probability = getProbabilityWordIndicatesSpam(word);
+			
+			spamProbability *= probability;
+			inverseSpamProbability *= (1 - probability);
 		}
 		
-		return spamProbability / (spamProbability + inverseSpamProbability);
+		double output = spamProbability / (spamProbability + inverseSpamProbability);
+		if (Double.isNaN(output))
+			return .5f;
+		return (float)output;
 	}
 
 	/* (non-Javadoc)
@@ -60,31 +60,22 @@ public class BayesianFilter implements Filter {
 				++this.hamSampleCount;
 			}
 			
-			// This makes sure we don't make multiple entries for the same word per message.
-			// Based on my interpretation, the basic Bayesian filter only counts the first
-			// ocurrence.
-			HashSet<String> encounteredWords = new HashSet<String>();
 			
-			BufferedReader messageReader = 
-				new BufferedReader(new InputStreamReader(msg.getInputStream()));
-			while(messageReader.ready()) {
-				String line = messageReader.readLine();
-				StringTokenizer messageLineTokenizer = new StringTokenizer(line);
-				while(messageLineTokenizer.hasMoreElements()) {
-					String word = (String)messageLineTokenizer.nextElement();
-					if(!encounteredWords.contains(word)) {
-						encounteredWords.add(word);
-						WordOcurrence occurrence = this.wordOcurrences.get(word);
-						if(occurrence == null) {
-							occurrence = new WordOcurrence(word);
-							this.wordOcurrences.put(word, occurrence);
-						}
-						if(spam) {
-							occurrence.incrementSpamOcurrences();
-						} else {
-							occurrence.incrementHamOcurrences();
-						}
-					}
+			String[] words = getTokens(msg);
+			
+					
+			for(String word : words) {
+				int[] occurrence = this.wordOcurrences.get(word);
+				
+				if(occurrence == null) {
+					occurrence = new int[2];
+					this.wordOcurrences.put(word, occurrence);
+				}
+				
+				if(spam) {
+					occurrence[SPAM]++;
+				} else {
+					occurrence[HAM]++;
 				}
 			}
 		} catch (IOException e) {
@@ -98,29 +89,57 @@ public class BayesianFilter implements Filter {
 		return true;
 	}
 	
-	private float getProbabilityWordAppearsInSpam(String word) {
-		WordOcurrence ocurrence = this.wordOcurrences.get(word);
-		if(ocurrence == null) {
-			return 0;
+	protected String[] getTokens(MimeMessage msg) throws IOException, MessagingException {
+		// This makes sure we don't make multiple entries for the same word per message.
+		// Based on my interpretation, the basic Bayesian filter only counts the first
+		// ocurrence.
+		HashSet<String> encounteredWords = new HashSet<String>();
+		
+		BufferedReader messageReader = 
+			new BufferedReader(new InputStreamReader(msg.getInputStream()));
+		
+		while(messageReader.ready()) {
+			String line = messageReader.readLine();
+			Matcher matcher = TOKEN_PATTERN.matcher(line);
+			
+			while(matcher.find()) {
+				
+				String word = matcher.group().toLowerCase();
+				if (word.length() < 2)
+					continue;
+				
+				if(!encounteredWords.contains(word)) {
+					encounteredWords.add(word);
+				}
+			}
 		}
-		return (float)ocurrence.getSpamOcurrences() / (float)this.spamSampleCount;
+		messageReader.close();
+		
+		return encounteredWords.toArray(new String[encounteredWords.size()]);
 	}
 	
-	private float getProbabilityWordAppearsInHam(String word) {
-		WordOcurrence ocurrence = this.wordOcurrences.get(word);
-		if(ocurrence == null) {
-			return 0;
+	private double getProbabilityWordIndicatesSpam(String word) {
+		int[] ocurrence = this.wordOcurrences.get(word);
+		if (ocurrence == null)
+			return 0.4;
+		if (ocurrence[SPAM] > 0 && ocurrence[HAM] == 0) {
+			return 0.99;
+		} else if (ocurrence[SPAM] == 0 && ocurrence[HAM] > 0) {
+			return 0.01;
+		} else if (ocurrence[SPAM] > 0 && ocurrence[HAM] > 0) {
+			double ham = (double)ocurrence[HAM] / (double)hamSampleCount;
+			double spam = (double)ocurrence[SPAM] / (double)spamSampleCount;
+			double rating = spam / (ham+spam);
+			if (rating < 0.01)
+				return 0.01;
+			if (rating > 0.99)
+				return 0.99;
+			return rating;
 		}
-		return (float)ocurrence.getHamOcurrences() / (float)this.hamSampleCount;
-	}
-	
-	private float getProbabilityWordIndicatesSpam(String word) {
-		return (getProbabilityWordAppearsInSpam(word) * overallSpamProbability) /
-			(getProbabilityWordAppearsInSpam(word) * overallSpamProbability + 
-			getProbabilityWordAppearsInHam(word) * overallHamProbability);
+		return 0.4;
 	}
 
-	private HashMap<String, WordOcurrence> wordOcurrences = new HashMap<String, WordOcurrence>();
+	private HashMap<String, int[]> wordOcurrences = new HashMap<String, int[]>();
 	private int spamSampleCount;
 	private int hamSampleCount;
 	

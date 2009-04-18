@@ -22,7 +22,11 @@ public class BayesianFilter implements Filter {
 	 */
 	@Override
 	public float test(MimeMessage msg) throws IOException, MessagingException {
-		float spamProbability = 0;
+		// spamProbability is p1 * p2 * ... * p(n - 1) * pn,
+		// inverseSpamProbability is (1-p1) * (1-p2) ... * p(1-n)
+		// see Bayes' theorem for more details.
+		float spamProbability = 1;
+		float inverseSpamProbability = 1;
 		
 		BufferedReader messageReader = 
 			new BufferedReader(new InputStreamReader(msg.getInputStream()));
@@ -31,10 +35,17 @@ public class BayesianFilter implements Filter {
 			StringTokenizer messageLineTokenizer = new StringTokenizer(line);
 			while(messageLineTokenizer.hasMoreElements()) {
 				String word = (String)messageLineTokenizer.nextElement();
-				spamProbability *= getProbabilityWordIndicatesSpam(word);
+				float probability = getProbabilityWordIndicatesSpam(word);
+				if(probability != 0 && !Float.isNaN(probability)) {
+					spamProbability *= probability;
+				}
+				if(spamProbability != 1 && !Float.isNaN(probability)) {
+					inverseSpamProbability *= (1 - spamProbability);
+				}
 			}
 		}
-		return spamProbability;
+		
+		return spamProbability / (spamProbability + inverseSpamProbability);
 	}
 
 	/* (non-Javadoc)
@@ -65,7 +76,8 @@ public class BayesianFilter implements Filter {
 						encounteredWords.add(word);
 						WordOcurrence occurrence = this.wordOcurrences.get(word);
 						if(occurrence == null) {
-							occurrence = this.wordOcurrences.put(word, new WordOcurrence(word));
+							occurrence = new WordOcurrence(word);
+							this.wordOcurrences.put(word, occurrence);
 						}
 						if(spam) {
 							occurrence.incrementSpamOcurrences();
@@ -87,11 +99,19 @@ public class BayesianFilter implements Filter {
 	}
 	
 	private float getProbabilityWordAppearsInSpam(String word) {
-		return wordOcurrences.get(word).getSpamOcurrences() / this.spamSampleCount;
+		WordOcurrence ocurrence = this.wordOcurrences.get(word);
+		if(ocurrence == null) {
+			return 0;
+		}
+		return (float)ocurrence.getSpamOcurrences() / (float)this.spamSampleCount;
 	}
 	
 	private float getProbabilityWordAppearsInHam(String word) {
-		return wordOcurrences.get(word).getHamOcurrences() / this.hamSampleCount;
+		WordOcurrence ocurrence = this.wordOcurrences.get(word);
+		if(ocurrence == null) {
+			return 0;
+		}
+		return (float)ocurrence.getHamOcurrences() / (float)this.hamSampleCount;
 	}
 	
 	private float getProbabilityWordIndicatesSpam(String word) {
@@ -100,7 +120,7 @@ public class BayesianFilter implements Filter {
 			getProbabilityWordAppearsInHam(word) * overallHamProbability);
 	}
 
-	private HashMap<String, WordOcurrence> wordOcurrences;
+	private HashMap<String, WordOcurrence> wordOcurrences = new HashMap<String, WordOcurrence>();
 	private int spamSampleCount;
 	private int hamSampleCount;
 	

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package edu.spam.framework.filters.bayesian;
+package edu.spam.framework.filters;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,6 +13,8 @@ import java.util.regex.Pattern;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+
+import com.sun.mail.util.DecodingException;
 
 import edu.spam.framework.Filter;
 
@@ -78,6 +80,8 @@ public class BayesianFilter implements Filter {
 					occurrence[HAM]++;
 				}
 			}
+		} catch (DecodingException e) {
+			return false;
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;

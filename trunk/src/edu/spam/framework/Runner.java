@@ -22,11 +22,14 @@ public class Runner {
 	public static void main(String[] args) throws FileNotFoundException, MessagingException, ClassNotFoundException, InstantiationException, IllegalAccessException {
 		
 		// Sorry, commented out just so I can get straight to the Bayesian filter.
-		//Class<?>[] filters = getClasses("edu.spam.framework.filters")
+		Class<?>[] filters = getClasses("edu.spam.framework.filters");
 		
-		 //for (Class<?> c : filters) {
-			Class<?> c = edu.spam.framework.filters.bayesian.BayesianFilter.class;
-			System.out.println(c);
+		for (Class<?> c : filters) {
+			
+			if(!c.getSimpleName().equals("StemBayFilter"))
+				continue;
+			
+			System.out.println(c.getSimpleName());
 			Filter filter = (Filter)c.newInstance();
 			
 			// Train
@@ -64,11 +67,11 @@ public class Runner {
 						++falsePositives;
 					}
 					
-					if (totalGuesses % 500 == 0) 
+					/*if (totalGuesses % 500 == 0) 
 					{
 						System.out.printf("Input %4s Probability: %4f Accuracy: %4f False Positive %4f%n", 
 								parts[0], result, (float)rightGuesses / (float)totalGuesses, (float)falsePositives / (float)totalGuesses);
-					}
+					}*/
 					
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -78,9 +81,7 @@ public class Runner {
 			
 			System.out.printf("Accuracy: %4f False Positive %4f%n", 
 					(float)rightGuesses / (float)totalGuesses, (float)falsePositives / (float)totalGuesses);
-			
-			// we should download trec07 for the test data  it'll be similar training method.
-		//}
+		}
 	}
 	
 	/**

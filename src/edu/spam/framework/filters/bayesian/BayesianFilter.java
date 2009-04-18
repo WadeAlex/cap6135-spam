@@ -105,7 +105,7 @@ public class BayesianFilter implements Filter {
 			while(matcher.find()) {
 				
 				String word = matcher.group().toLowerCase();
-				if (word.length() < 2)
+				if (word.length() < 2 || word.length() > 50)
 					continue;
 				
 				if(!encounteredWords.contains(word)) {

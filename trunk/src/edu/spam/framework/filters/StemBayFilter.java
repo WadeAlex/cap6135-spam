@@ -8,6 +8,11 @@ import javax.mail.internet.MimeMessage;
 import org.tartarus.snowball.SnowballStemmer;
 import org.tartarus.snowball.ext.englishStemmer;
 
+/**
+ * run a stemmer on the tokens
+ * @author qbproger
+ *
+ */
 public class StemBayFilter extends BayesianFilter {
 
 	protected String[] getTokens(MimeMessage msg) throws IOException, MessagingException {

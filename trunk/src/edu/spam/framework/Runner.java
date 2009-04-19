@@ -9,9 +9,8 @@ import java.util.Scanner;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
+import edu.spam.framework.filters.BayLiteFilter;
 import edu.spam.framework.filters.BayesianFilter;
-import edu.spam.framework.filters.DblBayFilter;
-import edu.spam.framework.filters.StemBayFilter;
 
 public class Runner {
 
@@ -26,7 +25,7 @@ public class Runner {
 	public static void main(String[] args) throws FileNotFoundException, MessagingException, ClassNotFoundException, InstantiationException, IllegalAccessException {
 		
 		// Sorry, commented out just so I can get straight to the Bayesian filter.
-		Class<?>[] filters = new Class<?>[]{/*BayesianFilter.class, StemBayFilter.class,*/ DblBayFilter.class};
+		Class<?>[] filters = new Class<?>[]{BayesianFilter.class, BayLiteFilter.class/*, DblBayFilter.class*/};
 		
 		//float[] percentToTrainWith = new float[]{.25f, .5f, .75f};
 		float[] percentToTrainWith = new float[]{0.25f, .5f};
@@ -41,9 +40,7 @@ public class Runner {
 		trainInput.close();
 		
 		for (Class<?> c : filters) {
-			
-			/*if(!c.getSimpleName().equals("HTMLBayFilter"))
-				continue;*/
+
 			System.out.println(c.getSimpleName());
 			for (float percent : percentToTrainWith) {
 				Filter filter = (Filter)c.newInstance();
@@ -87,10 +84,10 @@ public class Runner {
 						try {
 							float result = filter.test(message);
 							// Right guesses
-							if((parts[0].equals("spam") && result > spamThreshold) || 
+							if((parts[0].equals("spam") && result >= spamThreshold) || 
 								(parts[0].equals("ham") && result < spamThreshold)) {
 								++rightGuesses;
-							} else if(parts[0].equals("ham") && result > spamThreshold) {
+							} else if(parts[0].equals("ham") && result >= spamThreshold) {
 								++falsePositives;
 							}
 							

@@ -42,7 +42,7 @@ public class BayesianFilter implements Filter {
 				double probability = getProbabilityWordIndicatesSpam(word);
 				
 				spamProbability *= probability;
-				inverseSpamProbability *= (1 - probability);
+				inverseSpamProbability *= (1.0 - probability);
 			}
 		} catch (DecodingException e) {
 			return 1f;
@@ -145,7 +145,7 @@ public class BayesianFilter implements Filter {
 		return encounteredWords.toArray(new String[encounteredWords.size()]);
 	}
 	
-	private double getProbabilityWordIndicatesSpam(String word) {
+	protected double getProbabilityWordIndicatesSpam(String word) {
 		int[] ocurrence = this.wordOcurrences.get(word);
 		if (ocurrence == null)
 			return 0.4;
@@ -171,9 +171,9 @@ public class BayesianFilter implements Filter {
 		wordOcurrences.clear();
 	}
 
-	private HashMap<String, int[]> wordOcurrences = new HashMap<String, int[]>();
-	private int spamSampleCount;
-	private int hamSampleCount;
+	protected HashMap<String, int[]> wordOcurrences = new HashMap<String, int[]>();
+	protected int spamSampleCount;
+	protected int hamSampleCount;
 	
 	// Wikipedia (duh we gotta cite a specific source) says .5 is "classical" but research indicates .8.
 	// Not sure when the research was conducted or if it corresponds to our 2006 data.

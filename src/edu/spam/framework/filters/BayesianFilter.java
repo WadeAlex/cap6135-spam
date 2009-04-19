@@ -29,19 +29,25 @@ public class BayesianFilter implements Filter {
 	 * @see edu.spam.framework.Filter#test(javax.mail.internet.MimeMessage)
 	 */
 	@Override
-	public float test(MimeMessage msg) throws IOException, MessagingException {
+	public float test(MimeMessage msg) throws MessagingException {
 		// spamProbability is p1 * p2 * ... * p(n - 1) * pn,
 		// inverseSpamProbability is (1-p1) * (1-p2) ... * p(1-n)
 		// see Bayes' theorem for more details.
 		double spamProbability = 1;
 		double inverseSpamProbability = 1;
 		
-		String[] words = getTokens(msg);
-		for (String word : words) {
-			double probability = getProbabilityWordIndicatesSpam(word);
-			
-			spamProbability *= probability;
-			inverseSpamProbability *= (1 - probability);
+		try {
+			String[] words = getTokens(msg);
+			for (String word : words) {
+				double probability = getProbabilityWordIndicatesSpam(word);
+				
+				spamProbability *= probability;
+				inverseSpamProbability *= (1 - probability);
+			}
+		} catch (DecodingException e) {
+			return 1f;
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		
 		double output = spamProbability / (spamProbability + inverseSpamProbability);
@@ -117,6 +123,23 @@ public class BayesianFilter implements Filter {
 				}
 			}
 		}
+		
+		String line = msg.getSubject();
+		if (line != null) {
+			Matcher matcher = TOKEN_PATTERN.matcher(line);
+			
+			while(matcher.find()) {
+				
+				String word = matcher.group().toLowerCase();
+				if (word.length() < 2 || word.length() > 50)
+					continue;
+				
+				if(!encounteredWords.contains(word)) {
+					encounteredWords.add(word);
+				}
+			}
+		}
+		
 		messageReader.close();
 		
 		return encounteredWords.toArray(new String[encounteredWords.size()]);
@@ -142,6 +165,11 @@ public class BayesianFilter implements Filter {
 		}
 		return 0.4;
 	}
+	
+	@Override
+	public void clear() {
+		wordOcurrences.clear();
+	}
 
 	private HashMap<String, int[]> wordOcurrences = new HashMap<String, int[]>();
 	private int spamSampleCount;
@@ -151,4 +179,5 @@ public class BayesianFilter implements Filter {
 	// Not sure when the research was conducted or if it corresponds to our 2006 data.
 	private final float overallSpamProbability = (float).5;
 	private final  float overallHamProbability = (float)1 - overallSpamProbability;
+
 }

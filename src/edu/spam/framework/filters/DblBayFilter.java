@@ -5,6 +5,11 @@ import java.io.IOException;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
+/**
+ * remove duplicate letters
+ * @author qbproger
+ *
+ */
 public class DblBayFilter extends BayesianFilter {
 	
 	protected String[] getTokens(MimeMessage msg) throws IOException, MessagingException {

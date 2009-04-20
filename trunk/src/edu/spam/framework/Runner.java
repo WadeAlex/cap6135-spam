@@ -11,6 +11,7 @@ import javax.mail.internet.MimeMessage;
 
 import edu.spam.framework.filters.BayLiteFilter;
 import edu.spam.framework.filters.BayesianFilter;
+import edu.spam.framework.filters.SplChkBayFilter;
 
 public class Runner {
 
@@ -25,7 +26,7 @@ public class Runner {
 	public static void main(String[] args) throws FileNotFoundException, MessagingException, ClassNotFoundException, InstantiationException, IllegalAccessException {
 		
 		// Sorry, commented out just so I can get straight to the Bayesian filter.
-		Class<?>[] filters = new Class<?>[]{BayesianFilter.class, BayLiteFilter.class/*, DblBayFilter.class*/};
+		Class<?>[] filters = new Class<?>[]{BayesianFilter.class, SplChkBayFilter.class, BayLiteFilter.class/*, DblBayFilter.class*/};
 		
 		//float[] percentToTrainWith = new float[]{.25f, .5f, .75f};
 		float[] percentToTrainWith = new float[]{0.25f, .5f};

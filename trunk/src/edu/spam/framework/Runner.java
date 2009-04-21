@@ -3,7 +3,6 @@ package edu.spam.framework;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 import javax.mail.MessagingException;
@@ -11,12 +10,15 @@ import javax.mail.internet.MimeMessage;
 
 import edu.spam.framework.filters.BayLiteFilter;
 import edu.spam.framework.filters.BayesianFilter;
+import edu.spam.framework.filters.DblBayFilter;
 import edu.spam.framework.filters.PhrBayFilter;
+import edu.spam.framework.filters.PhrSplChkBayFilter;
 import edu.spam.framework.filters.SplChkBayFilter;
+import edu.spam.framework.filters.StemBayFilter;
 
 public class Runner {
 
-	private static final float[] SPAM_THRESHOLDS = new float[]{0.4f, 0.45f, 0.5f, 0.55f, 0.6f, 0.65f, 0.7f, .75f, .8f/*, .85f*/};
+	private static final float[] SPAM_THRESHOLDS = new float[]{0.5f, 0.55f, 0.65f, .75f, .85f};
 	
 	/**
 	 * @param args
@@ -29,10 +31,16 @@ public class Runner {
 	public static void main(String[] args) throws FileNotFoundException, MessagingException, ClassNotFoundException, InstantiationException, IllegalAccessException {
 		
 		// Sorry, commented out just so I can get straight to the Bayesian filter.
-		Class<?>[] filters = new Class<?>[]{PhrBayFilter.class, BayesianFilter.class, SplChkBayFilter.class, BayLiteFilter.class/*, DblBayFilter.class*/};
+		Class<?>[] filters = new Class<?>[]{
+				BayesianFilter.class, 
+				BayLiteFilter.class, 
+				DblBayFilter.class,
+				StemBayFilter.class,
+				PhrBayFilter.class, 
+				SplChkBayFilter.class, 
+				PhrSplChkBayFilter.class};
 		
-		//float[] percentToTrainWith = new float[]{.25f, .5f, .75f};
-		float[] percentToTrainWith = new float[]{0.25f, .5f};
+		float[] percentToTrainWith = new float[]{.25f, .5f, .75f};
 		
 		int totalMessages = 0;
 		Scanner trainInput = new Scanner(new File("trec06p/full/index"));
@@ -52,7 +60,7 @@ public class Runner {
 				int trainCount = (int) ((float)totalMessages * percent);
 				train(filter, trainCount);
 				
-				// Test				
+				// Test
 				test(filter, trainCount, totalMessages);
 				
 				filter.clear();
@@ -87,7 +95,8 @@ public class Runner {
 				trainInput.nextLine();
 				i++;
 			}
-			
+
+			long start = System.currentTimeMillis();
 			while (trainInput.hasNextLine()) {
 				String line = trainInput.nextLine();
 				String[] parts = line.split(" ");
@@ -114,12 +123,14 @@ public class Runner {
 					e.printStackTrace();
 				}
 			}
-		
 			trainInput.close();
+			long end = System.currentTimeMillis();
 			
-			System.out.printf("Training: %-5d of %-5d Threshold: %f Accuracy: %4f False Positive %4f%n",
+			System.out.printf("Training: %-5d of %-5d Threshold: %f Accuracy: %4f False Positive %4f Runtime: %d ms%n",
 					trainCount, totalMessages, spamThreshold,
-					(float)rightGuesses / (float)totalGuesses, (float)falsePositives / (float)totalGuesses);
+					(float)rightGuesses / (float)totalGuesses, 
+					(float)falsePositives / (float)totalGuesses,
+					(end-start));
 		}
 	}
 }

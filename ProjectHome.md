@@ -1,0 +1,1 @@
+A framework for testing spam algorithms.  With a few different algorithms included.
